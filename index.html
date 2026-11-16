@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mon Suivi</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mon Suivi">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f3f4ef">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: une colonne mobile, résumé en haut, onglets fixes en bas */
+:root{
+  --bg:#f3f4ef; --surface:#ffffff; --line:#dfe2d8; --fg:#1d2420; --muted:#68716a;
+  --accent:#2f6b4f; --accent-soft:#dcebe2; --warn:#b4532a; --warn-soft:#f6e3d9; --ok:#2f7a4a;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121613; --surface:#1b211d; --line:#2c352f; --fg:#e8ece6; --muted:#9aa49c;
+  --accent:#7cc39c; --accent-soft:#223a2d; --warn:#e8916a; --warn-soft:#3a2419; --ok:#7cc39c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121613; --surface:#1b211d; --line:#2c352f; --fg:#e8ece6; --muted:#9aa49c;
+  --accent:#7cc39c; --accent-soft:#223a2d; --warn:#e8916a; --warn-soft:#3a2419; --ok:#7cc39c; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);margin:0}
+[hidden]{display:none!important}
+body{color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-top:calc(12px + env(safe-area-inset-top,0px));
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:26px} h2{font-size:19px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Résumé */
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.stat .val{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.stat .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* Listes */
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid var(--line);min-width:0}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0;overflow-wrap:anywhere}
+.row .time{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent);min-width:44px;font-size:14px}
+.empty{padding:18px 14px;color:var(--muted);font-size:14px}
+.chip{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.chip.late{background:var(--warn-soft);color:var(--warn)}
+.chip.past{background:var(--line);color:var(--muted)}
+
+/* Boutons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.icon{border:0;background:transparent;color:var(--muted);padding:6px;border-radius:8px;font-size:13px;white-space:nowrap}
+.icon.danger{color:var(--warn);font-weight:600}
+.yn{display:flex;gap:6px}
+.yn button{border:1px solid var(--line);background:transparent;border-radius:8px;width:38px;height:34px;font-weight:700;color:var(--muted)}
+.yn button.on.yes{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.yn button.on.no{background:var(--warn);border-color:var(--warn);color:var(--bg)}
+.check{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);background:transparent;flex:none;display:grid;place-items:center;color:var(--bg);font-size:14px;font-weight:700}
+.check.on{background:var(--accent);border-color:var(--accent)}
+.done .main{color:var(--muted);text-decoration:line-through}
+
+/* Formulaires */
+form.add{display:flex;flex-wrap:wrap;gap:8px}
+form.add input[type=text]{flex:1 1 180px;min-width:0}
+input[type=text],input[type=date],input[type=time]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:16px;min-width:0}
+input[type=time]{width:110px} input[type=date]{width:160px}
+
+/* Navigation jour */
+.daynav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.daynav .d{font-family:var(--display);font-weight:700;font-size:17px;text-align:center;flex:1}
+.daynav button{width:40px;height:36px}
+.section{display:flex;flex-direction:column;gap:10px}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Objectifs */
+.goal{display:flex;flex-direction:column;gap:8px;padding:14px 12px;border-top:1px solid var(--line)}
+.goal:first-child{border-top:0}
+.goal .gh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.goal .pct{font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.goal .ctl{display:flex;align-items:center;gap:8px}
+.goal input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.goal .step{width:44px;height:32px;border:1px solid var(--line);background:transparent;border-radius:8px;font-weight:600;font-size:13px}
+
+/* Progression */
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.seg{display:flex;gap:4px;background:var(--bg);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:4px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--accent)}
+.chart svg{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .lbl{fill:var(--muted);font-size:10px;font-family:var(--body)}
+.chart .area{fill:var(--accent-soft)}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.chart .dot-oui{fill:var(--ok)} .chart .dot-non{fill:var(--warn)} .chart .end{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.trend{font-size:13px;font-weight:600}
+.trend.up{color:var(--ok)} .trend.down{color:var(--warn)}
+.habits{display:flex;flex-direction:column;gap:8px}
+.habit{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:14px}
+.habit .bar{grid-column:1/-1}
+.habit .n{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.demo-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600}
+.demo-bar .btn{color:var(--fg)}
+.note{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:0}
+.backup{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Onglets */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));z-index:5}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600}
+nav.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a.on{color:var(--accent);background:var(--accent-soft)}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Mon Suivi</h1>
+    <span class="muted small" id="today-lbl"></span>
+  </div>
+  <div class="section-head"><span></span><button class="btn" type="button" id="demo-on">Voir un exemple</button></div>
+  <div class="demo-bar" id="demo-bar" hidden><span>Exemple avec des fausses données. Rien n'est sauvegardé.</span><button class="btn" type="button" id="demo-off">Revenir à mes données</button></div>
+
+  <div class="stats">
+    <div class="stat"><span class="lbl">Planning aujourd'hui</span><span class="val" id="s-day">–</span><div class="bar"><i id="b-day" style="width:0"></i></div><span class="sub" id="s-day-sub">Rien de prévu</span></div>
+    <div class="stat"><span class="lbl">Suivi 7 derniers jours</span><span class="val" id="s-week">–</span><div class="bar"><i id="b-week" style="width:0"></i></div><span class="sub" id="s-week-sub">Pas encore de données</span></div>
+    <div class="stat"><span class="lbl">Objectifs (moyenne)</span><span class="val" id="s-goal">–</span><div class="bar"><i id="b-goal" style="width:0"></i></div><span class="sub" id="s-goal-sub">Aucun objectif</span></div>
+    <div class="stat"><span class="lbl">Prochaine date</span><span class="val" id="s-next">–</span><span class="sub" id="s-next-sub">Rien à l'horizon</span></div>
+  </div>
+
+  <p class="note" id="status" hidden></p>
+
+  <!-- JOUR -->
+  <section class="section" id="v-jour">
+    <div class="chart-card">
+      <div class="section-head">
+        <h2>Ma progression</h2>
+        <div class="seg" role="group" aria-label="Période">
+          <button type="button" data-range-days="7">7 j</button>
+          <button type="button" data-range-days="30" class="on">30 j</button>
+          <button type="button" data-range-days="90">90 j</button>
+        </div>
+      </div>
+      <div class="section-head"><span class="muted small">Chaque ✓ fait monter la ligne, chaque ✗ la fait baisser.</span><span class="trend" id="trend"></span></div>
+      <div class="chart" id="chart"></div>
+      <div class="habits" id="habits"></div>
+    </div>
+    <div class="daynav">
+      <button class="btn" id="prev" aria-label="Jour précédent">‹</button>
+      <div class="d" id="day-lbl"></div>
+      <button class="btn" id="next" aria-label="Jour suivant">›</button>
+    </div>
+    <div class="list" id="plan-list"></div>
+    <form class="add" id="plan-form">
+      <input type="time" id="plan-time" aria-label="Heure">
+      <input type="text" id="plan-text" placeholder="Ex. : Lecture ANT, 1 h" aria-label="Activité" required>
+      <button class="btn primary">Ajouter</button>
+    </form>
+    <div class="section-head">
+      <span class="muted small">Coche ✓ si tu l'as suivi, ✗ sinon.</span>
+      <button class="btn" id="copy-week" type="button">Copier le planning d'il y a 7 jours</button>
+    </div>
+  </section>
+
+  <!-- OBJECTIFS -->
+  <section class="section" id="v-objectifs" hidden>
+    <h2>Objectifs</h2>
+    <div class="list" id="goal-list"></div>
+    <form class="add" id="goal-form">
+      <input type="text" id="goal-text" placeholder="Ex. : Finir le bac" aria-label="Objectif" required>
+      <input type="date" id="goal-date" aria-label="Échéance (optionnelle)">
+      <button class="btn primary">Ajouter</button>
+    </form>
+    <span class="muted small">Date optionnelle. Glisse la barre ou utilise −10 / +10 pour mettre ton % à jour.</span>
+  </section>
+
+  <!-- DATES -->
+  <section class="section" id="v-dates" hidden>
+    <h2>Dates importantes</h2>
+    <div class="list" id="date-list"></div>
+    <form class="add" id="date-form">
+      <input type="text" id="date-text" placeholder="Ex. : Remise du travail final" aria-label="Événement" required>
+      <input type="date" id="date-date" aria-label="Date" required>
+      <button class="btn primary">Ajouter</button>
+    </form>
+  </section>
+
+  <!-- À FAIRE -->
+  <section class="section" id="v-afaire" hidden>
+    <h2>À faire</h2>
+    <div class="list" id="todo-list"></div>
+    <form class="add" id="todo-form">
+      <input type="text" id="todo-text" placeholder="Ex. : Appeler le vétérinaire" aria-label="Tâche" required>
+      <input type="date" id="todo-date" aria-label="Pour quand (optionnel)">
+      <button class="btn primary">Ajouter</button>
+    </form>
+    <div class="section" id="todo-done-wrap" hidden>
+      <span class="muted small" id="todo-done-lbl"></span>
+      <div class="list" id="todo-done"></div>
+    </div>
+  </section>
+
+  <!-- SAUVEGARDE -->
+  <section class="section">
+    <h2>Copie de sauvegarde</h2>
+    <span class="muted small">Tes données restent seulement dans ce navigateur. Exporte une copie de temps en temps pour pas les perdre.</span>
+    <div class="backup">
+      <button class="btn" type="button" id="export">Exporter une copie</button>
+      <button class="btn" type="button" id="import">Importer une copie</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs">
+  <a href="#jour" data-v="jour"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Planning</a>
+  <a href="#objectifs" data-v="objectifs"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>Objectifs</a>
+  <a href="#dates" data-v="dates"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>Dates</a>
+  <a href="#afaire" data-v="afaire"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg>À faire</a>
+</nav>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,"0");
+  const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+  const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return ymd(d); };
+  const todayStr = () => ymd(new Date());
+  const daysUntil = s => Math.round((parse(s) - parse(todayStr()))/86400000);
+  const fmtLong = s => parse(s).toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long"});
+  const fmtShort = s => parse(s).toLocaleDateString("fr-CA",{day:"numeric",month:"short"});
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const rel = n => n===0 ? "aujourd'hui" : n===1 ? "demain" : n===-1 ? "hier" : n>0 ? "dans "+n+" j" : "il y a "+(-n)+" j";
+
+  let items = new Map();      // id -> {kind,...}
+  let day = todayStr();
+  let store = null;           // {save(id,obj), remove(id)}
+  let armed = null;           // id en attente de confirmation de suppression
+
+  /* ---------- Rendu ---------- */
+  function byKind(k){ return [...items.entries()].filter(([,v]) => v.kind===k).map(([id,v]) => ({id,...v})); }
+  function setBar(id,p){ $(id).style.width = Math.max(0,Math.min(100,p))+"%"; }
+  function delBtn(id){ return `<button class="icon ${armed===id?"danger":""}" data-del="${id}">${armed===id?"Supprimer ?":"✕"}</button>`; }
+
+  function rate(list){
+    const judged = list.filter(p => p.status);
+    if(!judged.length) return null;
+    return Math.round(100*judged.filter(p => p.status==="oui").length/judged.length);
+  }
+
+  function renderStats(){
+    const t = todayStr();
+    $("today-lbl").textContent = fmtLong(t);
+    const plan = byKind("plan");
+    const todayPlan = plan.filter(p => p.date===t);
+    const r = rate(todayPlan);
+    $("s-day").textContent = r==null ? "–" : r+" %"; setBar("b-day", r||0);
+    const judged = todayPlan.filter(p=>p.status).length;
+    $("s-day-sub").textContent = todayPlan.length ? judged+" / "+todayPlan.length+" noté"+(judged>1?"s":"") : "Rien de prévu";
+
+    const from = addDays(t,-6);
+    const week = plan.filter(p => p.date>=from && p.date<=t);
+    const w = rate(week);
+    $("s-week").textContent = w==null ? "–" : w+" %"; setBar("b-week", w||0);
+    $("s-week-sub").textContent = w==null ? "Pas encore de données" : week.filter(p=>p.status==="oui").length+" suivis sur "+week.filter(p=>p.status).length;
+
+    const goals = byKind("goal");
+    const g = goals.length ? Math.round(goals.reduce((a,x)=>a+(x.progress||0),0)/goals.length) : null;
+    $("s-goal").textContent = g==null ? "–" : g+" %"; setBar("b-goal", g||0);
+    $("s-goal-sub").textContent = goals.length ? goals.filter(x=>x.progress>=100).length+" atteint(s) sur "+goals.length : "Aucun objectif";
+
+    const next = byKind("date").filter(d => d.date>=t).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    if(next){ const n = daysUntil(next.date); $("s-next").textContent = n===0 ? "Auj." : n+" j"; $("s-next-sub").textContent = next.title; }
+    else { $("s-next").textContent = "–"; $("s-next-sub").textContent = "Rien à l'horizon"; }
+  }
+
+  function renderPlan(){
+    const n = daysUntil(day);
+    $("day-lbl").textContent = (n===0 ? "Aujourd'hui · " : n===1 ? "Demain · " : n===-1 ? "Hier · " : "") + fmtLong(day);
+    const list = byKind("plan").filter(p => p.date===day).sort((a,b)=>(a.time||"99").localeCompare(b.time||"99"));
+    $("plan-list").innerHTML = list.length ? list.map(p => `
+      <div class="row">
+        <span class="time">${p.time ? esc(p.time) : "—"}</span>
+        <span class="main">${esc(p.text)}</span>
+        <span class="yn">
+          <button class="yes ${p.status==="oui"?"on":""}" data-st="${p.id}" data-v="oui" aria-label="Suivi">✓</button>
+          <button class="no ${p.status==="non"?"on":""}" data-st="${p.id}" data-v="non" aria-label="Pas suivi">✗</button>
+        </span>
+        ${delBtn(p.id)}
+      </div>`).join("") : `<div class="empty">Aucun bloc prévu pour cette journée. Ajoute ton premier ci-dessous, avec ou sans heure.</div>`;
+  }
+
+  function renderGoals(){
+    const list = byKind("goal").sort((a,b)=>(a.deadline||"9999").localeCompare(b.deadline||"9999"));
+    $("goal-list").innerHTML = list.length ? list.map(g => {
+      const p = g.progress||0;
+      let chip = "";
+      if(g.deadline){ const n = daysUntil(g.deadline); chip = `<span class="chip ${p<100&&n<0?"late":""}">${p>=100?"Atteint":"Échéance "+fmtShort(g.deadline)+" · "+rel(n)}</span>`; }
+      else if(p>=100) chip = `<span class="chip">Atteint</span>`;
+      return `<div class="goal">
+        <div class="gh"><span class="main" style="font-weight:600;overflow-wrap:anywhere">${esc(g.title)}</span><span class="pct">${p}&thinsp;%</span></div>
+        <div class="bar"><i style="width:${p}%"></i></div>
+        <div class="ctl">
+          <button class="step" data-step="${g.id}" data-d="-10">−10</button>
+          <input type="range" id="r-${g.id}" min="0" max="100" step="5" value="${p}" data-range="${g.id}" aria-label="Progression">
+          <button class="step" data-step="${g.id}" data-d="10">+10</button>
+        </div>
+        <div class="section-head">${chip || "<span></span>"}${delBtn(g.id)}</div>
+      </div>`;}).join("") : `<div class="empty">Pas encore d'objectif. Ajoute-en un, puis mets ton pourcentage à jour au fil des semaines.</div>`;
+  }
+
+  function renderDates(){
+    const t = todayStr();
+    const list = byKind("date").sort((a,b)=>a.date.localeCompare(b.date));
+    const up = list.filter(d=>d.date>=t), past = list.filter(d=>d.date<t).reverse();
+    const row = d => { const n = daysUntil(d.date); return `<div class="row">
+      <span class="main"><strong>${esc(d.title)}</strong><br><span class="muted small">${fmtLong(d.date)}</span></span>
+      <span class="chip ${n<0?"past":n<=3?"late":""}">${rel(n)}</span>${delBtn(d.id)}</div>`; };
+    $("date-list").innerHTML = list.length ? up.map(row).join("") + past.map(row).join("")
+      : `<div class="empty">Aucune date pour l'instant. Ajoute tes examens, remises, rendez-vous ou voyages.</div>`;
+  }
+
+  function renderTodos(){
+    const all = byKind("todo");
+    const open = all.filter(x=>!x.done).sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999"));
+    const done = all.filter(x=>x.done).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+    const row = x => { let chip = ""; if(x.due && !x.done){ const n = daysUntil(x.due); chip = `<span class="chip ${n<0?"late":""}">${n<0?"en retard":rel(n)}</span>`; }
+      return `<div class="row ${x.done?"done":""}">
+        <button class="check ${x.done?"on":""}" data-todo="${x.id}" aria-label="${x.done?"Marquer à faire":"Marquer fait"}">${x.done?"✓":""}</button>
+        <span class="main">${esc(x.text)}</span>${chip}${delBtn(x.id)}</div>`; };
+    $("todo-list").innerHTML = open.length ? open.map(row).join("") : `<div class="empty">${done.length ? "Tout est fait. Bravo." : "Ta liste est vide. Ajoute une tâche ci-dessous."}</div>`;
+    $("todo-done-wrap").hidden = !done.length;
+    $("todo-done-lbl").textContent = "Faites (" + done.length + ")";
+    $("todo-done").innerHTML = done.slice(0,30).map(row).join("");
+  }
+
+  let rangeDays = 30;
+  function renderChart(){
+    const t = todayStr(), from = addDays(t, -(rangeDays-1));
+    const plan = byKind("plan").filter(p => p.status && p.date>=from && p.date<=t);
+    const W=320,H=150,L=30,R=10,T=10,B=22, iw=W-L-R, ih=H-T-B;
+    const x = i => L + (rangeDays===1?0:i*iw/(rangeDays-1));
+    const y = p => T + ih - p*ih/100;
+    let grid = [0,50,100].map(p=>`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(p)}" y2="${y(p)}"/><text class="lbl" x="${L-6}" y="${y(p)+3}" text-anchor="end">${p}%</text>`).join("");
+    grid += `<text class="lbl" x="${L}" y="${H-6}">${fmtShort(from)}</text><text class="lbl" x="${W-R}" y="${H-6}" text-anchor="end">Auj.</text>`;
+    if(!plan.length){
+      $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Aucune donnée">${grid}<text class="lbl" x="${L+iw/2}" y="${T+ih/2}" text-anchor="middle">Coche ✓ ou ✗ dans ton planning pour voir ta ligne</text></svg>`;
+      $("trend").textContent = ""; $("habits").innerHTML = ""; return;
+    }
+    let yes=0, tot=0, pts=[], dots="";
+    for(let i=0;i<rangeDays;i++){
+      const d = addDays(from,i), dayItems = plan.filter(p=>p.date===d);
+      if(!dayItems.length) continue;
+      const dy = dayItems.filter(p=>p.status==="oui").length;
+      yes += dy; tot += dayItems.length;
+      const pct = 100*yes/tot; pts.push([x(i), y(pct), pct]);
+      const dayPct = 100*dy/dayItems.length;
+      dots += `<circle class="${dayPct>=50?"dot-oui":"dot-non"}" cx="${x(i)}" cy="${y(dayPct)}" r="2.6" opacity=".55"><title>${fmtShort(d)} : ${dy}/${dayItems.length}</title></circle>`;
+    }
+    const path = pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1)).join("");
+    const area = path + `L${pts[pts.length-1][0].toFixed(1)},${y(0)}L${pts[0][0].toFixed(1)},${y(0)}Z`;
+    const last = pts[pts.length-1];
+    $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Progression : ${Math.round(last[2])} %">${grid}<path class="area" d="${area}" opacity=".7"/>${dots}<path class="line" d="${path}"/><circle class="end" cx="${last[0]}" cy="${last[1]}" r="4.5"/><text class="lbl" x="${Math.min(last[0],W-R-4)}" y="${Math.max(last[1]-9,T+8)}" text-anchor="end" style="fill:var(--accent);font-weight:700;font-size:12px">${Math.round(last[2])}%</text></svg>`;
+    const delta = pts.length>1 ? Math.round(last[2]-pts[pts.length-2][2]) : 0;
+    $("trend").className = "trend " + (delta>0?"up":delta<0?"down":"");
+    $("trend").textContent = delta>0 ? "▲ +"+delta+" pts" : delta<0 ? "▼ "+delta+" pts" : "= stable";
+    const groups = new Map();
+    plan.forEach(p => { const k = p.text.trim().toLowerCase(); const g = groups.get(k) || {name:p.text.trim(),oui:0,tot:0}; g.tot++; if(p.status==="oui") g.oui++; groups.set(k,g); });
+    const hs = [...groups.values()].filter(g=>g.tot>=2).sort((a,b)=>b.tot-a.tot).slice(0,6);
+    $("habits").innerHTML = hs.length ? `<span class="muted small">Par activité</span>` + hs.map(g => { const p = Math.round(100*g.oui/g.tot); return `<div class="habit"><span style="overflow-wrap:anywhere">${esc(g.name)}</span><span class="n">${g.oui}/${g.tot} · <strong style="color:var(--fg)">${p}%</strong></span><div class="bar"><i style="width:${p}%;${p<50?"background:var(--warn)":""}"></i></div></div>`; }).join("") : "";
+  }
+  document.querySelectorAll("[data-range-days]").forEach(b => b.onclick = () => {
+    rangeDays = Number(b.dataset.rangeDays);
+    document.querySelectorAll("[data-range-days]").forEach(o => o.classList.toggle("on", o===b));
+    renderChart();
+  });
+
+  function render(){ renderChart(); renderStats(); renderPlan(); renderGoals(); renderDates(); renderTodos(); }
+
+  /* ---------- Actions ---------- */
+  function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function put(id,obj){ items.set(id,obj); render(); if(store && !demo) store.save(id,obj).catch(fail); }
+  function patch(id,changes){ const cur = items.get(id); if(!cur) return; put(id,{...cur,...changes}); }
+  function fail(){ showStatus("La sauvegarde n'a pas marché. L'espace du navigateur est peut-être plein."); }
+  function showStatus(msg){ $("status").textContent = msg; $("status").hidden = !msg; }
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button"); if(!b) return;
+    if(b.dataset.del){
+      const id = b.dataset.del;
+      if(armed===id){ armed=null; items.delete(id); render(); if(store && !demo) store.remove(id).catch(fail); }
+      else { armed=id; render(); setTimeout(()=>{ if(armed===id){ armed=null; render(); } }, 3000); }
+      return;
+    }
+    if(b.dataset.st){ const cur = items.get(b.dataset.st); patch(b.dataset.st,{status: cur.status===b.dataset.v ? null : b.dataset.v}); return; }
+    if(b.dataset.step){ const cur = items.get(b.dataset.step); patch(b.dataset.step,{progress: Math.max(0,Math.min(100,(cur.progress||0)+Number(b.dataset.d)))}); return; }
+    if(b.dataset.todo){ const cur = items.get(b.dataset.todo); patch(b.dataset.todo,{done:!cur.done, doneAt: !cur.done ? new Date().toISOString() : null}); return; }
+  });
+  document.addEventListener("change", e => {
+    const r = e.target.dataset && e.target.dataset.range;
+    if(r) patch(r,{progress:Number(e.target.value)});
+  });
+
+  $("prev").onclick = () => { day = addDays(day,-1); renderPlan(); };
+  $("next").onclick = () => { day = addDays(day,1); renderPlan(); };
+  $("day-lbl").onclick = () => { day = todayStr(); renderPlan(); };
+
+  $("plan-form").onsubmit = e => { e.preventDefault(); const text = $("plan-text").value.trim(); if(!text) return;
+    put(newId(),{kind:"plan",date:day,time:$("plan-time").value||"",text,status:null}); $("plan-text").value=""; $("plan-time").value=""; };
+  $("goal-form").onsubmit = e => { e.preventDefault(); const title = $("goal-text").value.trim(); if(!title) return;
+    put(newId(),{kind:"goal",title,progress:0,deadline:$("goal-date").value||""}); $("goal-text").value=""; $("goal-date").value=""; };
+  $("date-form").onsubmit = e => { e.preventDefault(); const title = $("date-text").value.trim(), date = $("date-date").value; if(!title||!date) return;
+    put(newId(),{kind:"date",title,date}); $("date-text").value=""; $("date-date").value=""; };
+  $("todo-form").onsubmit = e => { e.preventDefault(); const text = $("todo-text").value.trim(); if(!text) return;
+    put(newId(),{kind:"todo",text,done:false,due:$("todo-date").value||"",doneAt:null}); $("todo-text").value=""; $("todo-date").value=""; };
+
+  $("copy-week").onclick = () => {
+    const src = addDays(day,-7);
+    const from = byKind("plan").filter(p=>p.date===src);
+    const already = new Set(byKind("plan").filter(p=>p.date===day).map(p=>p.time+"|"+p.text));
+    const todo = from.filter(p=>!already.has(p.time+"|"+p.text));
+    if(!from.length){ showStatus("Rien de prévu le "+fmtLong(src)+", donc rien à copier."); return; }
+    if(!todo.length){ showStatus("Ce planning est déjà copié."); return; }
+    showStatus("");
+    todo.forEach(p => put(newId(),{kind:"plan",date:day,time:p.time,text:p.text,status:null}));
+  };
+
+  /* ---------- Exemple ---------- */
+  let demo = false, realItems = null;
+  function demoData(){
+    let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+    const m = new Map(), t = todayStr(); let n = 0;
+    const add = o => m.set("demo"+(n++), o);
+    const routine = [
+      {text:"Méditation", time:"07:30", days:[0,1,2,3,4,5,6], p:.45},
+      {text:"Travail", time:"09:00", days:[2,4,5], p:.97},
+      {text:"Gym", time:"18:00", days:[1,3,5], p:.6},
+      {text:"Lecture pour les cours", time:"20:00", days:[0,1,2,3,4], p:.75},
+      {text:"Écurie", time:"10:00", days:[6], p:.9}
+    ];
+    for(let i=-34;i<=1;i++){
+      const d = addDays(t,i), wd = parse(d).getDay();
+      routine.forEach(r => { if(!r.days.includes(wd)) return;
+        const boost = (i+34)/35*.25;
+        let status = i<0 ? (rnd() < Math.min(.98,r.p+boost-.1) ? "oui" : "non") : null;
+        if(i===0 && r.time<"12:00") status = "oui";
+        add({kind:"plan", date:d, time:r.time, text:r.text, status});
+      });
+    }
+    add({kind:"goal", title:"Finir mon bac", progress:75, deadline:addDays(t,170)});
+    add({kind:"goal", title:"Gym 3 fois par semaine", progress:60, deadline:""});
+    add({kind:"goal", title:"Épargner pour le voyage", progress:45, deadline:addDays(t,55)});
+    add({kind:"goal", title:"Lire 10 livres cette année", progress:30, deadline:addDays(t,52)});
+    add({kind:"goal", title:"Faire mon CV à jour", progress:100, deadline:addDays(t,-5)});
+    add({kind:"date", title:"Remise du travail de session", date:addDays(t,4)});
+    add({kind:"date", title:"Examen final", date:addDays(t,18)});
+    add({kind:"date", title:"Anniversaire de maman", date:addDays(t,26)});
+    add({kind:"date", title:"Départ en voyage", date:addDays(t,58)});
+    add({kind:"date", title:"Rendez-vous chez le dentiste", date:addDays(t,-3)});
+    add({kind:"todo", text:"Payer le loyer", done:false, due:addDays(t,-1), doneAt:null});
+    add({kind:"todo", text:"Réserver les billets d'avion", done:false, due:addDays(t,6), doneAt:null});
+    add({kind:"todo", text:"Acheter de la nourriture pour le chat", done:false, due:"", doneAt:null});
+    add({kind:"todo", text:"Envoyer le courriel au prof", done:false, due:t, doneAt:null});
+    add({kind:"todo", text:"Faire l'épicerie", done:true, due:"", doneAt:new Date().toISOString()});
+    add({kind:"todo", text:"Renouveler mon passeport", done:true, due:"", doneAt:new Date(Date.now()-864e5).toISOString()});
+    return m;
+  }
+  $("demo-on").onclick = () => { if(demo) return; demo = true; realItems = items; items = demoData(); armed = null;
+    $("demo-bar").hidden = false; $("demo-on").hidden = true; day = todayStr(); render(); scrollTo(0,0); };
+  $("demo-off").onclick = () => { demo = false; items = realItems || new Map(); realItems = null; armed = null;
+    $("demo-bar").hidden = true; $("demo-on").hidden = false; render(); };
+
+  /* ---------- Onglets ---------- */
+  const views = ["jour","objectifs","dates","afaire"];
+  function route(){
+    const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : "jour";
+    views.forEach(x => $("v-"+x).hidden = x!==v);
+    document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("on", a.dataset.v===v));
+  }
+  addEventListener("hashchange", route); route();
+
+  /* ---------- Stockage (dans ce navigateur) ---------- */
+  const KEY = "mon-suivi-v1";
+  function localStore(){
+    try{ const raw = localStorage.getItem(KEY); if(raw) items = new Map(Object.entries(JSON.parse(raw))); }catch(e){}
+    const flush = () => { try{ localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(items))); return Promise.resolve(); }catch(e){ return Promise.reject(e); } };
+    return { save: flush, remove: flush };
+  }
+  store = localStore();
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+
+  /* ---------- Export / import ---------- */
+  $("export").onclick = () => {
+    const data = demo ? realItems : items;
+    const blob = new Blob([JSON.stringify({app:"mon-suivi",version:1,exportedAt:new Date().toISOString(),items:Object.fromEntries(data||new Map())},null,2)],{type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "mon-suivi-"+todayStr()+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  };
+  $("import").onclick = () => $("import-file").click();
+  $("import-file").onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+    try{
+      const j = JSON.parse(await f.text());
+      const src = j && j.items ? j.items : j;
+      const valid = Object.entries(src||{}).filter(([,v]) => v && v.kind);
+      if(!valid.length){ showStatus("Ce fichier contient aucune donnée de Mon Suivi."); return; }
+      if(!confirm("Ajouter "+valid.length+" élément(s) de la copie à tes données actuelles ?")) return;
+      if(demo) $("demo-off").click();
+      valid.forEach(([id,v]) => items.set(id,v));
+      store.save().catch(fail); render();
+      showStatus(valid.length+" élément(s) importé(s).");
+    }catch(err){ showStatus("Impossible de lire ce fichier. Choisis une copie exportée par Mon Suivi."); }
+  };
+
+  render();
+
+  setInterval(() => { renderStats(); renderDates(); }, 60000);
+})();
+</script>
+</body>
+</html>
